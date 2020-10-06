@@ -1,0 +1,16 @@
+{
+  "name": "tscrap",
+  "version": "0.1.0",
+  "description": "Pequeno Webscrap",
+  "main": "index.js",
+  "dependencies": {
+    "playwright": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Thiago Sales",
+  "license": "ISC"
+}
