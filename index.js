@@ -16,6 +16,18 @@ const urls = [
         discountSelector: 'div.to-price',
         withoutDiscountSelector: 'div.to-price'
     },
+    {
+        url: 'https://www.submarino.com.br/produto/12566302/ar-condicionado-split-daikin-advance-inverter-9000-btus-frio-220v',
+        discountSelector: '.main-offer__SalesPrice-sc-1oo1w8r-1',
+        withoutDiscountSelector: 'strike.regular-price'
+    },
+    {
+        url: 'https://www.americanas.com.br/produto/12566302/ar-condicionado-split-daikin-advance-inverter-9000-btus-frio-220v',
+        discountSelector: '.price__SalesPrice-ej7lo8-2',
+        withoutDiscountSelector: '.price__Strike-ej7lo8-1'
+    }
+
+    
 ];
 
 
@@ -46,10 +58,29 @@ async function main() {
             await page.click('text=Confirmar');
         }
 
-        const withoutDiscount = await page.$eval(withoutDiscountSelector, (el) => el.textContent);
-        const withDiscount = await page.$eval(discountSelector, (el) => el.textContent);
+            try {
+                const withoutDiscountElement = await page.$(withoutDiscountSelector);
+                const discountElement = await page.$(discountSelector);
 
-        console.log({ withDiscount, withoutDiscount });
+                //transformar para funcao
+                let withoutDiscount = withoutDiscountElement ? await page.evaluate((el) => el.textContent, withoutDiscountElement) : '';
+                let withDiscount = discountElement ? await page.evaluate((el) => el.textContent, discountElement) : '';
+
+                withoutDiscount = withoutDiscount.replace(/[^0-9\.\,]+/g, "");
+                withDiscount = withDiscount.replace(/[^0-9\.\,]+/g, "");
+
+                console.log({ withDiscount, withoutDiscount });
+            } catch (error) {
+                console.log("não encontrado");
+                console.log(error);
+            }
+
+
+
+
+
+
+
 
     }
 
@@ -58,3 +89,33 @@ async function main() {
 }
 
 main();
+
+
+// function sendMessageTelegram($text)
+// {
+//     $apiToken = "";
+//     $data = [
+//         'chat_id'   => '',
+//         'text'      => $text
+//     ];
+
+
+//     return "https://api.telegram.org/bot{$apiToken}/sendMessage?" . http_build_query($data);
+// }
+
+
+// function storeHistProduto(&$conn, $codigo, $valor)
+// {
+//     $sth = $conn->prepare("INSERT INTO persistencia ( codigo, preco ) values (?, ?) ON CONFLICT(codigo) DO UPDATE SET preco = EXCLUDED.preco");
+//     $sth->execute([$codigo, $valor]);
+// }
+
+// function getHistProduto(&$conn, $codigo)
+// {
+//     $query = $conn->prepare("SELECT codigo, preco FROM persistencia WHERE codigo = :codigo LIMIT 1");
+//     $query->bindParam(':codigo', $codigo);
+//     $query->execute();
+
+//     $resultado = $query->fetch(PDO::FETCH_ASSOC);
+//     return $resultado !== false ? $resultado : [];
+// }
