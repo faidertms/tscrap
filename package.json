@@ -4,9 +4,14 @@
   "description": "Pequeno Webscrap",
   "main": "index.js",
   "dependencies": {
+    "axios": "^0.20.0",
+    "cron": "^1.8.2",
+    "pg": "^8.4.0",
     "playwright": "^1.2.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "dotenv": "^8.2.0"
+  },
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
