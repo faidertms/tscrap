@@ -22,14 +22,14 @@ This project is not being done as a final product, **it has been made only for a
 
 **Before run make a new .env based in example.env**
 
->CHAT_ID= YOUR CHAT ID IN TELEGRAM
->API_TOKEN= YOUR API_TOKEN IN TELEGRAM
->DB_HOST= YOUR POSTGRES HOST
->DB_USER= YOUR POSTGRES USER
->DB_PASS= YOUR POSTGRES PASSWORD
->DB_DATABASE= YOUR POSTGRES DATABASE
->DB_PORT= YOUR POSTGRES PORT
->DB_SSL=true
+>CHAT_ID= YOUR CHAT ID IN TELEGRAM  
+>API_TOKEN= YOUR API_TOKEN IN TELEGRAM  
+>DB_HOST= YOUR POSTGRES HOST  
+>DB_USER= YOUR POSTGRES USER  
+>DB_PASS= YOUR POSTGRES PASSWORD  
+>DB_DATABASE= YOUR POSTGRES DATABASE  
+>DB_PORT= YOUR POSTGRES PORT  
+>DB_SSL=true  
 
 **Script to create a new database is in db/database.sql**
 
@@ -42,4 +42,4 @@ This project is not being done as a final product, **it has been made only for a
 
 Telegram Chat :mailbox::calling:: 
 
-![](https://github.com/faidertms/tscrap/telegram.png)
+![](https://raw.githubusercontent.com/faidertms/tscrap/main/telegram.png)
