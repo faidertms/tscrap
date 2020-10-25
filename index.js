@@ -7,37 +7,23 @@ require('dotenv').config();
 
 const products = [
     {
-        code: "001",
+        id: 1,
         url: 'https://www.frigelar.com.br/ar-condicionado-split-inverter-high-wall-daikin-advance-quente-e-frio-9000-btus-fth09p5vl-kit1263/p',
         discountSelector: 'strong.skuListPrice',
         withoutDiscountSelector: 'strong.skuBestPrice'
     },
     {
-        code: "002",
-        url: 'https://www.frigelar.com.br/ar-condicionado-split-inverter-fujitsu-quente-e-frio-high-wall-9000-btus-com-sensor-de-presenca-asbg09lmca-kit504/p',
-        discountSelector: 'strong.skuListPrice',
-        withoutDiscountSelector: 'strong.skuBestPrice'
-    },
-    {
-        code: "003",
+        id: 3,
         url: 'https://www.leroymerlin.com.br/ar-condicionado-split-inverter-9000btus-frio-advance-daikin_89454981',
         discountSelector: 'div.to-price',
         withoutDiscountSelector: 'div.to-price'
     },
     {
-        code: "004",
-        url: 'https://www.submarino.com.br/produto/12566302/ar-condicionado-split-daikin-advance-inverter-9000-btus-frio-220v',
-        discountSelector: '.main-offer__SalesPrice-sc-1oo1w8r-1',
-        withoutDiscountSelector: 'strike.regular-price'
-    },
-    {
-        code: "005",
+        id: 5,
         url: 'https://www.americanas.com.br/produto/12566302/ar-condicionado-split-daikin-advance-inverter-9000-btus-frio-220v',
         discountSelector: '.price__SalesPrice-ej7lo8-2',
         withoutDiscountSelector: '.price__Strike-ej7lo8-1'
     }
-
-
 ];
 
 const isLeroyMerlinAskingForAddress = async (page) => {
@@ -46,12 +32,11 @@ const isLeroyMerlinAskingForAddress = async (page) => {
 
 const isLeroyMerlin = async (url, page) => {
     if (url.includes("leroymerlin.com") && await isLeroyMerlinAskingForAddress(page)) {
-        await page.fill('input[name="zipcode"]', '60010-450')
+        await page.fill('input[name="zipcode"]', '60811-900')
         await page.waitForTimeout(2000)
         await page.click('text=Confirmar');
         return true;
     }
-
     return false;
 }
 
@@ -66,7 +51,7 @@ const getPriceFromElements = async (page, withoutDiscountElement, discountElemen
     priceWithoutDiscount = priceWithoutDiscount.replace(/[^0-9\.\,]+/g, "").replace(/[,.]/g, m => (m === ',' ? '.' : ''));
     discountPrice = discountPrice.replace(/[^0-9\.\,]+/g, "").replace(/[,.]/g, m => (m === ',' ? '.' : ''));
 
-    return { priceWithoutDiscount, discountPrice }
+    return { priceWithoutDiscount, discountPrice };
 }
 
 const sendMessageTelegram = async (text) => {
@@ -77,37 +62,40 @@ const sendMessageTelegram = async (text) => {
         const url = `https://api.telegram.org/bot${API_TOKEN}/sendMessage`;
         const response = await Axios.get(url, { params });
     } catch (error) {
-        console.log("erro no envio");
-        console.log(error);
+        console.log("Telegram error");
     }
 }
 
-const getProductPrice = async (code) => {
-    const result = await db.query("SELECT code, price FROM prices WHERE code = $1 LIMIT 1", [code]);
+const getProductPrice = async (product_id) => {
+    const result = await db.query("SELECT product_id, price FROM prices WHERE product_id = $1 AND created_at = now()::date LIMIT 1", [product_id]);
     return result.rows[0] ? result.rows[0] : {};
 }
 
-const storeProductPrice = async (code, price) => {
-    const result = await db.query("INSERT INTO prices ( code, price ) values ($1, $2)  ON CONFLICT(code) DO UPDATE SET price = EXCLUDED.price", [code, price]);
+const storeProductPrice = async (product_id, price) => {
+    const result = await db.query("INSERT INTO prices ( product_id, price, created_at, updated_at ) values ($1, $2, now(), now()) ON CONFLICT(product_id, created_at) DO UPDATE SET updated_at = now(), price = EXCLUDED.price", [product_id, price]);
     return result
 }
 
 const getLowestPrice = (priceWithoutDiscount, discountPrice) => {
-    console.log([priceWithoutDiscount, discountPrice])
     if (!discountPrice) {
-        return priceWithoutDiscount ? Number(priceWithoutDiscount) : 0;
+        return priceWithoutDiscount ? Number(priceWithoutDiscount) : null;
     }
 
-    return discountPrice ? Number(discountPrice) : 0;
+    return discountPrice ? Number(discountPrice) : null;
+}
+
+const isNewPrice = (productPrice, newPrice) => {
+    const existNewPrice = (newPrice && (productPrice.price > newPrice || productPrice.price == 0));
+    const notExistProduct = productPrice.product_id === undefined
+    return notExistProduct || existNewPrice;
 }
 
 const handlePrice = async (product, priceWithoutDiscount, discountPrice) => {
-    console.log(product.code)
-    const productPrice = await getProductPrice(product.code);
+    const productPrice = await getProductPrice(product.id);
     const newPrice = getLowestPrice(priceWithoutDiscount, discountPrice);
-
-    if (!productPrice.code || (productPrice.price == 0 && newPrice != 0) || productPrice.price > newPrice) {
-        await storeProductPrice(product.code, newPrice);
+    console.log([productPrice.product_id, productPrice.price, newPrice])
+    if (isNewPrice(productPrice, newPrice)) {
+        await storeProductPrice(product.id, newPrice);
         await sendMessageTelegram(`URL: ${product.url} \n Price: ${newPrice}`);
     }
 }
@@ -115,18 +103,15 @@ const handlePrice = async (product, priceWithoutDiscount, discountPrice) => {
 async function main() {
 
     const browser = await playwright.chromium.launch({
-        headless: true
+        headless: false
     });
 
     const page = await browser.newPage();
 
     for (const product of products) {
-        const { url, code, discountSelector, withoutDiscountSelector } = product;
+        const { url, discountSelector, withoutDiscountSelector } = product;
 
-        await page.goto(url);
-
-        await page.waitForTimeout(2000)
-
+        await page.goto(url, { waitUntil: 'networkidle0' });
         await isLeroyMerlin(url, page);
 
         try {
@@ -140,10 +125,8 @@ async function main() {
             handlePrice(product, priceWithoutDiscount, discountPrice);
 
         } catch (error) {
-            console.log("não encontrado");
-            console.log(error);
+            console.log("not found");
         }
-
     }
 
     await browser.close();
@@ -160,5 +143,5 @@ const job = new CronJob(
     true
 );
 
-console.log("Processo id: " + process.pid)
+console.log("Process id: " + process.pid)
 job.start();
